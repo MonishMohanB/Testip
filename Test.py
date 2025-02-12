@@ -1,4 +1,4 @@
-import cx_Oracle
+import pyodbc
 import pickle
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import load_iris
@@ -17,22 +17,27 @@ def main():
         print("Serializing the model...")
         model_bytes = pickle.dumps(model)
 
-        # Step 2: Connect to the Oracle database
+        # Step 2: Connect to the Oracle database using pyodbc
         print("Connecting to the Oracle database...")
-        dsn = cx_Oracle.makedsn('hostname', 'port', service_name='service_name')
-        connection = cx_Oracle.connect(user='username', password='password', dsn=dsn)
+        connection_string = (
+            "DRIVER={Oracle ODBC Driver};"
+            "DBQ=hostname:port/service_name;"
+            "UID=username;"
+            "PWD=password;"
+        )
+        connection = pyodbc.connect(connection_string)
         cursor = connection.cursor()
 
         # Step 3: Check if the table exists
         table_name = 'SAVED_MODELS'
         try:
             print(f"Checking if table '{table_name}' exists...")
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT table_name
                 FROM user_tables
-                WHERE table_name = :table_name
-            """, table_name=table_name.upper())
-        except cx_Oracle.DatabaseError as e:
+                WHERE table_name = ?
+            """, table_name.upper())
+        except pyodbc.Error as e:
             print(f"Error checking table existence: {e}")
             raise
 
@@ -51,7 +56,7 @@ def main():
                 cursor.execute(create_table_sql)
                 connection.commit()
                 print(f"Table '{table_name}' created successfully.")
-            except cx_Oracle.DatabaseError as e:
+            except pyodbc.Error as e:
                 print(f"Error creating table: {e}")
                 connection.rollback()
                 raise
@@ -63,12 +68,12 @@ def main():
             print("Inserting the model into the database...")
             insert_sql = f"""
             INSERT INTO {table_name} (model_name, model_data)
-            VALUES (:model_name, :model_data)
+            VALUES (?, ?)
             """
-            cursor.execute(insert_sql, model_name='RandomForestClassifier', model_data=model_bytes)
+            cursor.execute(insert_sql, 'RandomForestClassifier', model_bytes)
             connection.commit()
             print("Model saved to the database.")
-        except cx_Oracle.DatabaseError as e:
+        except pyodbc.Error as e:
             print(f"Error inserting model into the database: {e}")
             connection.rollback()
             raise
@@ -76,11 +81,11 @@ def main():
         # Step 5: Retrieve and deserialize the model
         try:
             print("Retrieving the model from the database...")
-            cursor.execute(f"SELECT model_data FROM {table_name} WHERE model_name = :model_name", model_name='RandomForestClassifier')
+            cursor.execute(f"SELECT model_data FROM {table_name} WHERE model_name = ?", 'RandomForestClassifier')
             row = cursor.fetchone()
 
             if row:
-                model_bytes = row[0].read()
+                model_bytes = row[0]  # pyodbc returns the BLOB directly
                 loaded_model = pickle.loads(model_bytes)
 
                 # Test the loaded model
@@ -88,7 +93,7 @@ def main():
                 print("Predictions from the loaded model:", predictions)
             else:
                 print("No model found in the database.")
-        except cx_Oracle.DatabaseError as e:
+        except pyodbc.Error as e:
             print(f"Error retrieving model from the database: {e}")
             raise
         except pickle.PickleError as e:
