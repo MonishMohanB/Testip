@@ -1,4 +1,6 @@
 from pyhive import hive
+import pandas as pd
+import uuid
 import time
 
 # Hive connection parameters
@@ -21,28 +23,34 @@ def connect_to_hive():
     )
     return conn
 
-# Function to insert rows incrementally
-def insert_rows_incrementally(conn, data):
+# Function to insert DataFrame rows incrementally with a random ID
+def insert_dataframe_incrementally(conn, df):
     cursor = conn.cursor()
     
     # Prepare the insert query
     insert_query = f"INSERT INTO TABLE {hive_table} VALUES (%s, %s, %s)"  # Adjust the query based on your table schema
     
     # Insert rows one by one
-    for row in data:
-        cursor.execute(insert_query, row)
-        print(f"Inserted row: {row}")
+    for index, row in df.iterrows():
+        # Generate a random UUID for the ID column
+        random_id = str(uuid.uuid4())
+        
+        # Prepare the row data with the random ID
+        row_data = (random_id, row['name'], row['age'])  # Adjust columns based on your DataFrame and table schema
+        
+        # Execute the insert query
+        cursor.execute(insert_query, row_data)
+        print(f"Inserted row: {row_data}")
         time.sleep(1)  # Optional: Add delay between inserts
 
     cursor.close()
 
-# Example data to insert
-data_to_insert = [
-    (1, 'Alice', 25),
-    (2, 'Bob', 30),
-    (3, 'Charlie', 35),
-    # Add more rows as needed
-]
+# Example DataFrame
+data = {
+    'name': ['Alice', 'Bob', 'Charlie'],
+    'age': [25, 30, 35]
+}
+df = pd.DataFrame(data)
 
 # Main execution
 if __name__ == "__main__":
@@ -51,8 +59,8 @@ if __name__ == "__main__":
         connection = connect_to_hive()
         print("Connected to Hive successfully!")
         
-        # Insert rows incrementally
-        insert_rows_incrementally(connection, data_to_insert)
+        # Insert DataFrame rows incrementally
+        insert_dataframe_incrementally(connection, df)
         
         # Close the connection
         connection.close()
