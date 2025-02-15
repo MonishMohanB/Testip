@@ -53,3 +53,29 @@ result = combine_dataframes(dfs, prefixes)
 
 # Display the result
 print(result)
+
+
+
+import pandas as pd
+
+# Sample DataFrame
+data = {
+    'variable': ['var1', 'var1', 'var2', 'var2', 'var3', 'var3'],
+    'test': ['testA', 'testB', 'testA', 'testB', 'testA', 'testB'],
+    'test_stat': [1.2, 2.3, 3.4, 4.5, 5.6, 6.7],
+    'p_value': [0.01, 0.02, 0.03, 0.04, 0.05, 0.06]
+}
+
+df = pd.DataFrame(data)
+
+# Pivot the DataFrame
+pivot_df = df.pivot(index='variable', columns='test', values=['test_stat', 'p_value'])
+
+# Flatten the MultiIndex columns
+pivot_df.columns = [f'{test}_{value}' for value, test in pivot_df.columns]
+
+# Reset the index to make 'variable' a column again
+pivot_df = pivot_df.reset_index()
+
+# Display the result
+print(pivot_df)
