@@ -1,5 +1,31 @@
 import pandas as pd
 
+# Function to combine DataFrames
+def combine_dataframes(dfs, prefixes, merge_column='ID'):
+    """
+    Combines a list of DataFrames on a specific column and adds prefixes to columns.
+
+    Args:
+        dfs (list of pd.DataFrame): List of DataFrames to combine.
+        prefixes (list of str): List of prefixes for each DataFrame.
+        merge_column (str): The column to merge on (default is 'ID').
+
+    Returns:
+        pd.DataFrame: The combined DataFrame.
+    """
+    # Add prefixes to columns (except the merge column)
+    for i, df in enumerate(dfs):
+        df = df.add_prefix(prefixes[i])  # Add prefix to all columns
+        df = df.rename(columns={f'{prefixes[i]}{merge_column}': merge_column})  # Rename the prefixed merge column back
+        dfs[i] = df  # Update the DataFrame in the list
+
+    # Merge all DataFrames on the merge column
+    merged_df = dfs[0]  # Start with the first DataFrame
+    for df in dfs[1:]:
+        merged_df = pd.merge(merged_df, df, on=merge_column, how='outer')  # Merge on the merge column
+
+    return merged_df
+
 # Sample DataFrames
 df1 = pd.DataFrame({
     'ID': [1, 2, 3],
@@ -22,16 +48,8 @@ dfs = [df1, df2, df3]
 # Prefixes for each DataFrame
 prefixes = ['df1_', 'df2_', 'df3_']
 
-# Add prefixes to columns (except the 'ID' column)
-for i, df in enumerate(dfs):
-    df = df.add_prefix(prefixes[i])  # Add prefix to all columns
-    df = df.rename(columns={f'{prefixes[i]}ID': 'ID'})  # Rename the prefixed ID column back to 'ID'
-    dfs[i] = df  # Update the DataFrame in the list
+# Call the function
+result = combine_dataframes(dfs, prefixes)
 
-# Merge all DataFrames on the 'ID' column
-merged_df = dfs[0]  # Start with the first DataFrame
-for df in dfs[1:]:
-    merged_df = pd.merge(merged_df, df, on='ID', how='outer')  # Merge on 'ID'
-
-# Display the final merged DataFrame
-print(merged_df)
+# Display the result
+print(result)
