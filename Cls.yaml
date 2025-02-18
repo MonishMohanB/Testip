@@ -1,0 +1,26 @@
+impala_connection:
+  host: your.impala.host
+  port: 21050
+  use_ssl: true
+  ldap_username: service_account
+  ssl_ca_cert: /path/to/cacert.pem
+  timeout: 3600
+
+tables:
+  table1:
+    columns:
+      - {name: id, type: INT}
+      - {name: name, type: STRING}
+      - {name: event_date, type: TIMESTAMP}
+    partitions:
+      - {name: event_date, type: TIMESTAMP}
+    incremental: true
+
+  table2:
+    columns:
+      - {name: user_id, type: INT}
+      - {name: activity, type: STRING}
+      - {name: created_at, type: TIMESTAMP}
+    partitions:
+      - {name: created_at, type: TIMESTAMP}
+    incremental: false
