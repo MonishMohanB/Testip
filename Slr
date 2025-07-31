@@ -1,0 +1,27 @@
+| Test                         | Validity | Justification                                                                                                                                                         |
+| ---------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vif` *(from previous list)* | ✅        | Not error-related, just multicollinearity check.                                                                                                                      |
+| `condition_index`            | ✅        | Like VIF, matrix-based—valid regardless of sampling design.                                                                                                           |
+| `newey_west_coefficeint`     | ✅        | Designed for **heteroskedasticity and autocorrelation**, often used for robust variance under non-iid conditions. Can be used with caution for clustered survey data. |
+
+
+
+| Test                             | Validity | Justification                                                                      |
+| -------------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| `engle_granger`                  | ❌        | Cointegration test for time-series; assumes stationarity, no weights/clusters.     |
+| `durbin_watson`                  | ❌        | Tests for autocorrelation assuming iid residuals—survey design breaks this.        |
+| `acf`, `pacf`                    | ❌        | Pure time-series diagnostics, not meaningful for survey regressions.               |
+| `adf`, `kpss`, `phillips_perron` | ❌        | Unit root tests, assume time-series structure and iid errors.                      |
+| `dfgls`, `johansen`              | ❌        | Time-series cointegration and stationarity tests—non-applicable in survey context. |
+| `cusum`, `cusum_sq`              | ❌        | Assume sequential data with iid residuals, not compatible with survey design.      |
+| `box_pierce`, `ljung_box`        | ❌        | Autocorrelation tests, assume iid structure.                                       |
+| `goldfeld_quandt`                | ❌        | Tests heteroskedasticity but assumes iid errors—survey design breaks assumptions.  |
+| `breusch_godfrey`                | ❌        | Assumes iid, non-survey residuals.                                                 |
+| `mcleod_li`                      | ❌        | Checks autocorrelation in squared residuals—assumes iid.                           |
+| `phillips_ouliaris`              | ❌        | Cointegration test, time-series only.                                              |
+
+
+| Test                         | Validity | Justification                                                                                                                                                      |
+| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `chow`                       | 🔶       | Can test for structural breaks, but must account for survey design via appropriate estimation of variances.                                                        |
+| `kruskal_wallis`, `friedman` | 🔶       | Nonparametric tests—not regression-specific, but if applied to design-based ranks or strata, may be valid. Must be used with **design-corrected test statistics**. |
