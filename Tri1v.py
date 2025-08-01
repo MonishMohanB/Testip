@@ -347,4 +347,158 @@ def main(model_config_input, tabular_input_path):
     except Exception as e:
         logger.critical(f"Fatal error during processing: {e}")
         
+import pytest
+import tempfile
+import os
+import pandas as pd
+import yaml
+import json
+from unittest.mock import patch, MagicMock
+from model_processor import (
+    load_model_config,
+    validate_model_config,
+    load_tabular_input,
+    validate_row,
+    load_data,
+    main
+)
 
+# ----------------------
+# Sample Inputs
+# ----------------------
+
+valid_model_config = {
+    "model_id": "123",
+    "submission_id": "456",
+    "model_name": "valid_model",
+    "base_path": tempfile.gettempdir()
+}
+
+valid_tabular_row = {
+    "sub_model_name": "sub_model_1",
+    "training_data": "dummy_train.csv",
+    "validation_data": "dummy_val.csv",
+    "training_data_type": "path",
+    "validation_data_type": "path",
+    "model_type": "xgboost"
+}
+
+# ----------------------
+# Config Tests
+# ----------------------
+
+def test_load_model_config_from_dict():
+    config = load_model_config(valid_model_config)
+    assert config["model_id"] == "123"
+
+def test_load_model_config_from_json(tmp_path):
+    file = tmp_path / "config.json"
+    with open(file, "w") as f:
+        json.dump(valid_model_config, f)
+    config = load_model_config(str(file))
+    assert config["submission_id"] == "456"
+
+def test_load_model_config_from_yaml(tmp_path):
+    file = tmp_path / "config.yaml"
+    with open(file, "w") as f:
+        yaml.dump(valid_model_config, f)
+    config = load_model_config(str(file))
+    assert config["model_name"] == "valid_model"
+
+def test_validate_model_config_valid():
+    validate_model_config(valid_model_config)
+
+@pytest.mark.parametrize("bad_config", [
+    {"submission_id": "456", "model_name": "model", "base_path": "/tmp"},  # missing model_id
+    {"model_id": "abc", "submission_id": "456", "model_name": "model", "base_path": "/tmp"},  # non-numeric model_id
+    {"model_id": "123", "submission_id": "456", "model_name": "invalid name!", "base_path": "/tmp"},  # bad model_name
+    {"model_id": "123", "submission_id": "456", "model_name": "model", "base_path": "/does_not_exist"},  # invalid path
+])
+def test_validate_model_config_invalid(bad_config):
+    with pytest.raises((KeyError, ValueError)):
+        validate_model_config(bad_config)
+
+# ----------------------
+# Tabular Input Tests
+# ----------------------
+
+@pytest.mark.parametrize("ext,writer", [
+    (".csv", lambda df, path: df.to_csv(path, index=False)),
+    (".json", lambda df, path: df.to_json(path, orient="records")),
+    (".yaml", lambda df, path: yaml.dump(df.to_dict(orient="records"), open(path, 'w'))),
+    (".xlsx", lambda df, path: df.to_excel(path, index=False)),
+])
+def test_load_tabular_input_all_formats(tmp_path, ext, writer):
+    df = pd.DataFrame([valid_tabular_row])
+    file = tmp_path / f"test{ext}"
+    writer(df, file)
+    df_loaded = load_tabular_input(str(file))
+    assert "sub_model_name" in df_loaded.columns
+
+def test_validate_row_success():
+    row = pd.Series(valid_tabular_row)
+    validate_row(row, idx=0)
+
+def test_validate_row_invalid_name():
+    row = pd.Series(valid_tabular_row)
+    row["sub_model_name"] = "bad name!"
+    with pytest.raises(ValueError):
+        validate_row(row, idx=0)
+
+def test_validate_row_missing_column():
+    row = pd.Series({"sub_model_name": "sub_1"})
+    with pytest.raises(ValueError):
+        validate_row(row, idx=0)
+
+# ----------------------
+# Data Loader Tests (Mocked)
+# ----------------------
+
+@patch("model_processor.pd.read_csv")
+def test_load_data_path(mock_read_csv):
+    mock_df = pd.DataFrame({"x": [1]})
+    mock_read_csv.return_value = mock_df
+    result = load_data("path", "somefile.csv")
+    assert isinstance(result, pd.DataFrame)
+
+@patch("model_processor.spark.read.csv")
+def test_load_data_hdfs(mock_spark_csv):
+    mock_spark_csv.return_value = MagicMock()
+    result = load_data("hdfs", "hdfs://path/to/data.csv")
+    assert result is not None
+
+@patch("model_processor.spark.read.table")
+def test_load_data_hive(mock_spark_table):
+    mock_spark_table.return_value = MagicMock()
+    result = load_data("hive", "database.table_name")
+    assert result is not None
+
+def test_load_data_invalid_type():
+    with pytest.raises(ValueError):
+        load_data("unknown", "some_source")
+
+# ----------------------
+# End-to-End Integration Test
+# ----------------------
+
+@patch("model_processor.load_data")
+@patch("model_processor.process_model")
+def test_main_success(mock_process_model, mock_load_data, tmp_path):
+    # Write config file
+    config_path = tmp_path / "config.yaml"
+    with open(config_path, "w") as f:
+        yaml.dump(valid_model_config, f)
+
+    # Write tabular input
+    tabular_data = pd.DataFrame([valid_tabular_row])
+    tabular_path = tmp_path / "input.csv"
+    tabular_data.to_csv(tabular_path, index=False)
+
+    # Mock data loader
+    mock_df = pd.DataFrame({"col": [1]})
+    mock_load_data.return_value = mock_df
+
+    # Run main
+    main(str(config_path), str(tabular_path))
+    assert mock_process_model.called
+    
