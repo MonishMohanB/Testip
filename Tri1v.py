@@ -1,0 +1,189 @@
+import os
+import re
+import json
+import yaml
+import pandas as pd
+
+def validate_model_config(model_config):
+    if not isinstance(model_config, dict):
+        raise ValueError("model_config must be a dictionary.")
+
+    for key in ['model_id', 'submission_id']:
+        if key not in model_config:
+            raise KeyError(f"{key} is missing in model_config.")
+        if not str(model_config[key]).isdigit():
+            raise ValueError(f"{key} must be numeric. Got: {model_config[key]}")
+
+    model_name = model_config.get('model_name')
+    if not isinstance(model_name, str) or not re.match(r'^[A-Za-z0-9]+(_[A-Za-z0-9]+)*$', model_name):
+        raise ValueError("model_name must be a string with only letters, numbers, and underscores between words.")
+
+def load_tabular_input(tabular_input_path):
+    if not os.path.isfile(tabular_input_path):
+        raise FileNotFoundError(f"{tabular_input_path} not found.")
+
+    _, ext = os.path.splitext(tabular_input_path)
+
+    try:
+        if ext.lower() in ['.csv']:
+            return pd.read_csv(tabular_input_path)
+        elif ext.lower() in ['.xlsx', '.xls']:
+            return pd.read_excel(tabular_input_path)
+        elif ext.lower() in ['.json']:
+            return pd.read_json(tabular_input_path)
+        elif ext.lower() in ['.yaml', '.yml']:
+            with open(tabular_input_path, 'r') as f:
+                data = yaml.safe_load(f)
+            return pd.DataFrame(data)
+        else:
+            raise ValueError(f"Unsupported file extension: {ext}")
+    except Exception as e:
+        raise ValueError(f"Error loading tabular input: {e}")
+
+def process_model(config):
+    """
+    This function simulates processing of a model.
+    Replace this with your actual processing logic.
+    """
+    print(f"Processing model with config: {config}")
+
+def main(model_config, tabular_input_path):
+    try:
+        validate_model_config(model_config)
+        df = load_tabular_input(tabular_input_path)
+
+        required_columns = {'sub_model_name', 'training_data', 'validation_data', 'model_type'}
+        if not required_columns.issubset(df.columns):
+            missing = required_columns - set(df.columns)
+            raise ValueError(f"Missing required columns in tabular input: {missing}")
+
+        for idx, row in df.iterrows():
+            try:
+                merged_config = model_config.copy()
+                merged_config.update(row.to_dict())
+                process_model(merged_config)
+            except Exception as e:
+                print(f"Error processing row {idx}: {e}")
+
+    except Exception as e:
+        print(f"Fatal error: {e}")
+
+# Example usage:
+if __name__ == "__main__":
+    model_config = {
+        "model_id": "12345",
+        "submission_id": "67890",
+        "model_name": "example_model"
+    }
+
+    tabular_input_path = "models_data.csv"  # or .xlsx, .json, .yaml
+    main(model_config, tabular_input_path)
+
+
+import pytest
+import pandas as pd
+import tempfile
+import json
+import yaml
+import os
+from unittest.mock import patch
+from your_module_name import (
+    validate_model_config,
+    load_tabular_input,
+    main,
+)
+
+# ------------------------
+# Fixtures and sample data
+# ------------------------
+
+valid_model_config = {
+    "model_id": "123",
+    "submission_id": "456",
+    "model_name": "valid_model_name"
+}
+
+invalid_model_configs = [
+    {"model_id": "abc", "submission_id": "456", "model_name": "valid_model_name"},  # model_id not numeric
+    {"model_id": "123", "submission_id": "xyz", "model_name": "valid_model_name"},  # submission_id not numeric
+    {"model_id": "123", "submission_id": "456", "model_name": "invalid name!"},     # invalid model_name
+    {},  # missing all keys
+]
+
+sample_df = pd.DataFrame([
+    {"sub_model_name": "sub1", "training_data": "train1.csv", "validation_data": "val1.csv", "model_type": "typeA"},
+    {"sub_model_name": "sub2", "training_data": "train2.csv", "validation_data": "val2.csv", "model_type": "typeB"},
+])
+
+# ------------------------
+# Unit tests
+# ------------------------
+
+def test_validate_model_config_valid():
+    validate_model_config(valid_model_config)
+
+@pytest.mark.parametrize("bad_config", invalid_model_configs)
+def test_validate_model_config_invalid(bad_config):
+    with pytest.raises((ValueError, KeyError)):
+        validate_model_config(bad_config)
+
+@pytest.mark.parametrize("ext,writer", [
+    (".csv", lambda df, path: df.to_csv(path, index=False)),
+    (".json", lambda df, path: df.to_json(path, orient="records")),
+    (".yaml", lambda df, path: yaml.dump(df.to_dict(orient="records"), open(path, 'w'))),
+    (".xlsx", lambda df, path: df.to_excel(path, index=False)),
+])
+def test_load_tabular_input_valid_formats(ext, writer):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmpfile:
+        path = tmpfile.name
+    writer(sample_df, path)
+    df = load_tabular_input(path)
+    assert isinstance(df, pd.DataFrame)
+    assert not df.empty
+    os.remove(path)
+
+def test_load_tabular_input_invalid_path():
+    with pytest.raises(FileNotFoundError):
+        load_tabular_input("non_existing_file.csv")
+
+def test_load_tabular_input_invalid_extension():
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmpfile:
+        tmpfile.write(b"dummy")
+        path = tmpfile.name
+    with pytest.raises(ValueError):
+        load_tabular_input(path)
+    os.remove(path)
+
+# ------------------------
+# Integration test with mocking
+# ------------------------
+
+def test_main_process_model_called(monkeypatch):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmpfile:
+        sample_df.to_csv(tmpfile.name, index=False)
+        path = tmpfile.name
+
+    calls = []
+
+    def mock_process_model(config):
+        calls.append(config)
+
+    monkeypatch.setattr("your_module_name.process_model", mock_process_model)
+    main(valid_model_config, path)
+    assert len(calls) == 2  # Should process 2 rows
+    os.remove(path)
+
+def test_main_handles_row_error(monkeypatch):
+    # Invalid row data: missing required columns
+    broken_df = pd.DataFrame([
+        {"not_required": "oops"}
+    ])
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmpfile:
+        broken_df.to_csv(tmpfile.name, index=False)
+        path = tmpfile.name
+
+    with patch("your_module_name.process_model") as mock_process:
+        mock_process.side_effect = Exception("Shouldn't be called")
+        with pytest.raises(ValueError, match="Missing required columns"):
+            main(valid_model_config, path)
+    os.remove(path)
