@@ -1,0 +1,29 @@
+| Test                       | Purpose                              | Keep?    | Note                                      |
+| -------------------------- | ------------------------------------ | -------- | ----------------------------------------- |
+| `vif`                      | Multicollinearity                    | ✅ Yes    | Important for predictor checks            |
+| `information_value`        | Variable importance                  | ✅ Yes    | Helps in feature selection                |
+| `hosmer_lemeshow`          | Goodness-of-fit                      | ✅ Yes\*  | Consider design-adjusted version          |
+| `deviance_chi_square`      | Model fit (likelihood ratio)         | ✅ Yes    | Useful but design-adjustment needed       |
+| `tau_a`                    | Rank correlation                     | ⚠️ Maybe | Skip unless working with ordinal outcomes |
+| `accuracy`                 | Predictive accuracy                  | ✅ Yes    | Basic metric for classification           |
+| `confusion_matrix`         | Detailed prediction outcome          | ✅ Yes    | Complements accuracy metric               |
+| *Pseudo R-squared*         | Model explanatory power              | ➕ Add    | Add if missing                            |
+| *Survey Wald or Rao-Scott* | Design-adjusted significance testing | ➕ Add    | Crucial in survey regression              |
+
+
+
+| **Test Name**                        | **Purpose**                                                  | **Include?** | **Notes / Clarification**                                                            |
+| ------------------------------------ | ------------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------------ |
+| `vif`                                | Multicollinearity (Variance Inflation Factor)                | ✅ Yes        | Essential for checking correlated predictors.                                        |
+| `information_value`                  | Variable predictive power (esp. for binary outcomes)         | ✅ Yes        | Good for feature selection; common in credit scoring.                                |
+| `hosmer_lemeshow`                    | Goodness-of-fit test                                         | ✅ Yes\*      | Use design-adjusted version for survey data if available.                            |
+| `deviance_chi_square`                | Overall model fit (via deviance/likelihood ratio)            | ✅ Yes        | Be cautious with interpretation in complex survey models.                            |
+| `tau_a`                              | Kendall’s tau-a rank correlation                             | ❌ No         | Not typically useful unless dealing with ordinal models.                             |
+| `accuracy`                           | Classification accuracy                                      | ✅ Yes        | Useful performance metric (but doesn't account for survey design).                   |
+| `confusion_matrix`                   | Classification detail (TP, FP, TN, FN)                       | ✅ Yes        | Helps understand prediction performance.                                             |
+| `spearman_r`                         | Spearman’s rank correlation                                  | ⚠️ Maybe     | Only include if testing monotonic relationships between ordinal predictors & target. |
+| `pearson_residuals`                  | Checks residuals for model misfit/outliers                   | ✅ Yes        | Valuable diagnostic tool. Adjust for design if possible.                             |
+| `unweighted_residual_sum_of_squares` | Residual fit metric (linear models)                          | ❌ No         | Not applicable to logistic models (uses deviance, not RSS).                          |
+| `stukel_test`                        | Checks for non-linearity in the logit                        | ✅ Yes        | Especially useful in logistic models.                                                |
+| `box_tidwell`                        | Tests linearity between continuous vars and logit of outcome | ✅ Yes        | Good for verifying assumption of linearity in logit.                                 |
+| `condition_index`                    | Detects multicollinearity & near dependencies                | ✅ Yes        | Stronger diagnostic than just VIF when multicollinearity is severe.                  |
