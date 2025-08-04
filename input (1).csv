@@ -1,0 +1,2 @@
+sub_model_name,model_type,training_data_type,training_data,validation_data_type,validation_data,time_var,time_series_vars,categorical_vars,scenario_var,optional_test,optional_performance_tests,omit_default_diagnostic_tests,omit_performance_tests
+model_1,xgboost,path,/data/train.csv,path,/data/valid.csv,timestamp,"feature1, feature2",category1,"scenario1, scenario2","test1, test2",perf1,,perf2

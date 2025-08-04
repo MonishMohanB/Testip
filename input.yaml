@@ -1,0 +1,14 @@
+- categorical_vars: category1
+  model_type: xgboost
+  omit_default_diagnostic_tests: ''
+  omit_performance_tests: perf2
+  optional_performance_tests: perf1
+  optional_test: test1, test2
+  scenario_var: scenario1, scenario2
+  sub_model_name: model_1
+  time_series_vars: feature1, feature2
+  time_var: timestamp
+  training_data: /data/train.csv
+  training_data_type: path
+  validation_data: /data/valid.csv
+  validation_data_type: path
