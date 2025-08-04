@@ -171,3 +171,18 @@ def main(model_config_input: Union[str, Dict], tabular_input_path: str):
 
     except Exception as e:
         logger.critical(f"Fatal error during processing: {e}", exc_info=True)
+
+def parse_list_column(value, index, colname):
+    try:
+        if pd.notna(value):
+            if isinstance(value, str):
+                logger.debug(f"Parsing list string in column '{colname}' at row {index}: {value}")
+                return ast.literal_eval(value)
+            elif isinstance(value, list):
+                return value
+            else:
+                raise ValueError(f"Unsupported type {type(value)} for column '{colname}' at row {index}")
+        return []
+    except Exception as e:
+        raise ValueError(f"Invalid list format in column '{colname}' at row {index}: {value}") from e
+        
