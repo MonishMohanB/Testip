@@ -689,3 +689,75 @@ def test_missing_training_data_error(tmp_path, base_config_dict):
     with pytest.raises(Exception):
         main(str(config_file), str(input_path))
         
+
+
+sub_model_name,model_type,training_data,training_data_type,validation_data,validation_data_type,time_var,time_series_vars,categorical_vars,scenario_var,optional_test,optional_performance_tests,omit_default_diagnostic_tests,omit_performance_tests
+model_a,xgboost,/data/train_a.csv,path,/data/valid_a.csv,path,date,f1|f2,cat1|cat2,scenario,test1|test2,perf1|perf2,diag1|diag2,perf_omit1
+model_b,random_forest,/data/train_b.csv,path,/data/valid_b.csv,path,date_b,"['feat1','feat2']","['catA']",scenarioB,,,,
+model_c,xgboost,,,,,,,,"",,,
+
+
+[
+  {
+    "sub_model_name": "model_a",
+    "model_type": "xgboost",
+    "training_data": "/data/train_a.csv",
+    "training_data_type": "path",
+    "validation_data": "/data/valid_a.csv",
+    "validation_data_type": "path",
+    "time_var": "date",
+    "time_series_vars": ["f1", "f2"],
+    "categorical_vars": ["cat1", "cat2"],
+    "scenario_var": ["scenario"],
+    "optional_test": ["test1", "test2"],
+    "optional_performance_tests": ["perf1", "perf2"],
+    "omit_default_diagnostic_tests": ["diag1", "diag2"],
+    "omit_performance_tests": ["perf_omit1"]
+  },
+  {
+    "sub_model_name": "model_b",
+    "model_type": "random_forest",
+    "training_data": "/data/train_b.csv",
+    "training_data_type": "path",
+    "validation_data": "/data/valid_b.csv",
+    "validation_data_type": "path",
+    "time_var": "date_b",
+    "time_series_vars": ["feat1", "feat2"],
+    "categorical_vars": ["catA"],
+    "scenario_var": ["scenarioB"]
+  },
+  {
+    "sub_model_name": "model_c",
+    "model_type": "xgboost"
+  }
+]
+
+- sub_model_name: model_a
+  model_type: xgboost
+  training_data: /data/train_a.csv
+  training_data_type: path
+  validation_data: /data/valid_a.csv
+  validation_data_type: path
+  time_var: date
+  time_series_vars: [f1, f2]
+  categorical_vars: [cat1, cat2]
+  scenario_var: [scenario]
+  optional_test: [test1, test2]
+  optional_performance_tests: [perf1, perf2]
+  omit_default_diagnostic_tests: [diag1, diag2]
+  omit_performance_tests: [perf_omit1]
+
+- sub_model_name: model_b
+  model_type: random_forest
+  training_data: /data/train_b.csv
+  training_data_type: path
+  validation_data: /data/valid_b.csv
+  validation_data_type: path
+  time_var: date_b
+  time_series_vars: [feat1, feat2]
+  categorical_vars: [catA]
+  scenario_var: [scenarioB]
+
+- sub_model_name: model_c
+  model_type: xgboost
+
